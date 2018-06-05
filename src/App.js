@@ -1,51 +1,21 @@
-import React, { Component } from 'react';
-import './App.css';
+import React from 'react';
+import Site from './Site';
 
-// Imports for GraphQL
-import { graphql } from 'react-apollo';
 import gql from 'graphql-tag';
 
-class App extends Component {
-  render() {
-    if (this.props.data && this.props.data.loading) {
-      return <div>Loading</div>;
-    }
+import { ApolloProvider, Query } from 'react-apollo';
+import { ApolloClient } from 'apollo-client';
+import { HttpLink } from 'apollo-link-http';
+import { InMemoryCache } from 'apollo-cache-inmemory';
 
-    if (this.props.data && this.props.data.error) {
-      console.log(this.props.data.error);
-      return <div>Error</div>;
-    }
+const httpLink = new HttpLink({ uri: 'http://127.0.0.1:8000/graphql/' });
 
-    const notesToRender = this.props.data.notes;
+const client = new ApolloClient({
+  link: httpLink,
+  cache: new InMemoryCache(),
+});
 
-    // REST
-    // const test = fetch('http://127.0.0.1:8000/api/notes')
-    //   .then(res => res.json())
-    //   .then((res) => {
-    //     console.log('res: ');
-    //     console.log(res);
-    //   })
-    //   .catch((err) => {
-    //     console.log(err);
-    //   });
-
-    return (
-      <div>
-        {notesToRender.map((note) => {
-          return (
-            <div key={note}>
-              <div>{note.title}</div>
-              <div>{note.id}</div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-}
-
-// JavaScript constant that stores the query
-const FEED_QUERY = gql`
+const QUERY = gql`
   query FeedQuery {
     notes {
       title
@@ -53,4 +23,19 @@ const FEED_QUERY = gql`
   }
 `;
 
-export default graphql(FEED_QUERY)(App);
+
+const App = () => {
+    return (
+      <ApolloProvider client={client}>
+        <Query query={QUERY}>
+          {({ loading, error, data }) => {
+            if (error) return <div>Error...</div>;
+            if (loading || !data) return <div>Loading...</div>;
+            return <Site data={data} />
+          }}
+        </Query>
+      </ApolloProvider>
+    );
+}
+
+export default App;
